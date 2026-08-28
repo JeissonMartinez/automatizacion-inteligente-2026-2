@@ -1,0 +1,76 @@
+# Automatización Inteligente — Stack del curso
+# Semana 1: Mosquitto (broker MQTT) + Node-RED (orquestación de flujos)
+# Semana 5: se activan InfluxDB y Grafana (ver el bloque comentado al final)
+#
+# Levantar:  docker compose up -d
+# Ver estado: docker compose ps
+# Ver logs:   docker compose logs -f
+# Apagar:     docker compose down
+# Borrar todo (incluidos datos): docker compose down -v
+
+services:
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: ai-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # MQTT sobre WebSockets
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+  nodered:
+    image: nodered/node-red:4.0
+    container_name: ai-nodered
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    environment:
+      - TZ=America/Bogota
+    volumes:
+      - nodered_data:/data
+    depends_on:
+      - mosquitto
+
+# ---------------------------------------------------------------
+# SEMANA 5 — descomentar estos dos servicios y el bloque de
+# volúmenes correspondiente cuando lleguemos al módulo M2.
+# ---------------------------------------------------------------
+#  influxdb:
+#    image: influxdb:2.7
+#    container_name: ai-influxdb
+#    restart: unless-stopped
+#    ports:
+#      - "8086:8086"
+#    environment:
+#      - DOCKER_INFLUXDB_INIT_MODE=setup
+#      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+#      - DOCKER_INFLUXDB_INIT_PASSWORD=unipamplona
+#      - DOCKER_INFLUXDB_INIT_ORG=unipamplona
+#      - DOCKER_INFLUXDB_INIT_BUCKET=planta
+#      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=token-de-clase-cambiar
+#    volumes:
+#      - influxdb_data:/var/lib/influxdb2
+#
+#  grafana:
+#    image: grafana/grafana:11.1.0
+#    container_name: ai-grafana
+#    restart: unless-stopped
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=unipamplona
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    depends_on:
+#      - influxdb
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  nodered_data:
+#  influxdb_data:
+#  grafana_data:

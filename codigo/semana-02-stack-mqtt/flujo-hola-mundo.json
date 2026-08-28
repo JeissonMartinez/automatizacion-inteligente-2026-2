@@ -1,0 +1,89 @@
+[
+    {
+        "id": "tab_s1",
+        "type": "tab",
+        "label": "S1 - Hola mundo MQTT",
+        "disabled": false,
+        "info": "Flujo de la Semana 1.\n\nPublica un mensaje cada 5 segundos en curso/s1/hola\ny se suscribe a curso/s1/# para verlo llegar.\n\nCAMBIE SU NOMBRE en el nodo 'Arma mensaje'."
+    },
+    {
+        "id": "broker_local",
+        "type": "mqtt-broker",
+        "name": "Mosquitto local",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true
+    },
+    {
+        "id": "inject_5s",
+        "type": "inject",
+        "z": "tab_s1",
+        "name": "Cada 5 segundos",
+        "props": [{ "p": "payload" }],
+        "repeat": "5",
+        "crontab": "",
+        "once": false,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 100,
+        "wires": [["fn_mensaje"]]
+    },
+    {
+        "id": "fn_mensaje",
+        "type": "function",
+        "z": "tab_s1",
+        "name": "Arma mensaje",
+        "func": "msg.payload = {\n    estudiante: \"CAMBIE_SU_NOMBRE\",\n    valor: Math.round(Math.random() * 100),\n    unidad: \"C\",\n    ts: new Date().toISOString()\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 370,
+        "y": 100,
+        "wires": [["mqtt_out"]]
+    },
+    {
+        "id": "mqtt_out",
+        "type": "mqtt out",
+        "z": "tab_s1",
+        "name": "Publica",
+        "topic": "curso/s1/hola",
+        "qos": "0",
+        "retain": "false",
+        "broker": "broker_local",
+        "x": 580,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "mqtt_in",
+        "type": "mqtt in",
+        "z": "tab_s1",
+        "name": "Escucha curso/s1/#",
+        "topic": "curso/s1/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "broker_local",
+        "x": 190,
+        "y": 220,
+        "wires": [["debug_rx"]]
+    },
+    {
+        "id": "debug_rx",
+        "type": "debug",
+        "z": "tab_s1",
+        "name": "Recibido",
+        "active": true,
+        "tosidebar": true,
+        "complete": "true",
+        "targetType": "full",
+        "x": 450,
+        "y": 220,
+        "wires": []
+    }
+]

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# Gancho pre-commit del repositorio del curso.
+# Tercera y última barrera contra publicar material docente por accidente.
+#
+# Instalación:  cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -uo pipefail
+
+# Nombres que nunca deben entrar al repositorio
+PATRONES_NOMBRE='(parcial|quiz|solucionario|respuestas|guion|guión|listado|asistencia|acta|nota[s]?_|calificac)'
+# Extensiones editables: se publica el PDF, no la fuente
+PATRONES_EXT='\.(pptx|potx|docx|dotx|xlsx|xlsm)$'
+# Rutas del proyecto que jamás se replican aquí
+PATRONES_RUTA='(Planificacion_Cowork|00-Listado|01-Asistencias|02-Actas|Examenes|Quices|00-Formatos_ejemplos|CLAUDE\.md|Plantilla_Unipamplona)'
+
+bloqueados=()
+while IFS= read -r archivo; do
+  [[ -z "$archivo" ]] && continue
+  base="$(basename "$archivo" | tr '[:upper:]' '[:lower:]')"
+  ruta="$archivo"
+  if [[ "$base" =~ $PATRONES_NOMBRE ]] \
+  || [[ "$base" =~ $PATRONES_EXT ]] \
+  || [[ "$ruta" =~ $PATRONES_RUTA ]]; then
+    bloqueados+=("$archivo")
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if [[ ${#bloqueados[@]} -gt 0 ]]; then
+  echo
+  echo "═══════════════════════════════════════════════════════════════"
+  echo " COMMIT BLOQUEADO — material que no debe llegar a los estudiantes"
+  echo "═══════════════════════════════════════════════════════════════"
+  for f in "${bloqueados[@]}"; do echo "   ✗ $f"; done
+  echo
+  echo " Retírelos del área de preparación:"
+  echo "     git restore --staged <archivo>"
+  echo
+  echo " Si está seguro de que es un falso positivo, y solo en ese caso:"
+  echo "     git commit --no-verify"
+  echo
+  exit 1
+fi
+
+exit 0

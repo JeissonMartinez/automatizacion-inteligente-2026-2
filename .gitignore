@@ -1,0 +1,61 @@
+# Repositorio del curso — Automatización Inteligente 168294
+#
+# Este archivo es la segunda línea de defensa, no la primera. La primera es que
+# el material docente vive en OTRA carpeta y nunca entra aquí.
+
+# --- Material docente: no debe existir en este repositorio ----------------
+*.pptx
+*.potx
+*.docx
+*.dotx
+*.xlsx
+*.xlsm
+*parcial*
+*Parcial*
+*quiz*
+*Quiz*
+*solucionario*
+*Solucionario*
+*guion*
+*guión*
+*listado*
+*Listado*
+*asistencia*
+*acta*
+CLAUDE.md
+Planificacion_Cowork/
+
+# --- Datos y artefactos pesados -------------------------------------------
+*.csv
+*.parquet
+*.h5
+*.pkl
+*.joblib
+datos/crudos/
+!datos/muestra/*.csv
+
+# --- Entornos y dependencias ----------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.pyc
+node_modules/
+
+# --- Volúmenes y estado de contenedores -----------------------------------
+mosquitto/data/
+mosquitto/log/
+influxdb-data/
+grafana-data/
+nodered-data/
+
+# --- Credenciales ----------------------------------------------------------
+.env
+*.key
+*.pem
+secrets*
+
+# --- Sistema operativo y editores -----------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
