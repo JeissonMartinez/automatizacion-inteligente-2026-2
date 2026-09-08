@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Verificación del stack de la Semana 1.
+Verificación del stack del curso (sesión 2A en adelante).
 Uso:  python verificar_stack.py            (verifica localhost)
       python verificar_stack.py 192.168.1.50   (verifica el stack del laboratorio)
 

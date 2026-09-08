@@ -1,5 +1,5 @@
 # Automatización Inteligente — Stack del curso
-# Semana 1: Mosquitto (broker MQTT) + Node-RED (orquestación de flujos)
+# Semana 2: Mosquitto (broker MQTT) + Node-RED (orquestación de flujos)
 # Semana 5: se activan InfluxDB y Grafana (ver el bloque comentado al final)
 #
 # Levantar:  docker compose up -d
