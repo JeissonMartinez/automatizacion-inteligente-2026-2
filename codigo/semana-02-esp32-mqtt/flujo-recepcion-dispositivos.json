@@ -1,0 +1,108 @@
+[
+    {
+        "id": "tab_s2b",
+        "type": "tab",
+        "label": "S2B - Dispositivos",
+        "disabled": false,
+        "info": "Flujo de la sesión 2B.\n\nEscucha todo lo que cuelga de lab/ y hace dos cosas:\n\n1. A las temperaturas les agrega la marca de tiempo y el contexto que\n   el dispositivo no sabe (equipo, dispositivo, medida). Eso es\n   CONTEXTUALIZACIÓN, y es el tema de la unidad 3.\n\n2. Separa los mensajes de estado, para ver aparecer el testamento\n   cuando un dispositivo se cae sin despedirse."
+    },
+    {
+        "id": "broker_lab",
+        "type": "mqtt-broker",
+        "name": "Mosquitto local",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "nodered-s2b",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true
+    },
+    {
+        "id": "nota_s2b",
+        "type": "comment",
+        "z": "tab_s2b",
+        "name": "Cambie mosquitto por la IP del compañero para la verificación cruzada",
+        "info": "El nodo de configuración del broker dice 'mosquitto' porque Node-RED\ncorre dentro de un contenedor y así llama al broker vecino.\n\nPara suscribirse al broker de un compañero, doble clic en cualquier\nnodo MQTT, lápiz junto al broker, y ponga la IP que él escribió en el\ntablero. El puerto sigue siendo 1883.",
+        "x": 400,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "in_temp",
+        "type": "mqtt in",
+        "z": "tab_s2b",
+        "name": "Escucha lab/#",
+        "topic": "lab/#",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "broker_lab",
+        "x": 160,
+        "y": 120,
+        "wires": [["fn_contexto"]]
+    },
+    {
+        "id": "fn_contexto",
+        "type": "function",
+        "z": "tab_s2b",
+        "name": "Agrega contexto",
+        "func": "// El dispositivo no tiene reloj de tiempo real y no sabe quién es\n// dentro de la planta. Ese contexto se agrega aquí, en el borde.\n\nlet d = msg.payload;\nif (typeof d === \"string\") {\n    try { d = JSON.parse(d); } catch (e) { d = { crudo: d }; }\n}\n\nconst partes = msg.topic.split(\"/\");\n\nmsg.payload = {\n    raiz:        partes[0] || null,\n    equipo:      partes[1] || null,\n    dispositivo: partes[2] || null,\n    medida:      partes[3] || null,\n    ...d,\n    recibido_en: new Date().toISOString()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 390,
+        "y": 120,
+        "wires": [["dbg_dato"]]
+    },
+    {
+        "id": "dbg_dato",
+        "type": "debug",
+        "z": "tab_s2b",
+        "name": "Dato contextualizado",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 640,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "in_estado",
+        "type": "mqtt in",
+        "z": "tab_s2b",
+        "name": "Escucha lab/+/+/estado",
+        "topic": "lab/+/+/estado",
+        "qos": "1",
+        "datatype": "utf8",
+        "broker": "broker_lab",
+        "x": 190,
+        "y": 240,
+        "wires": [["fn_estado"]]
+    },
+    {
+        "id": "fn_estado",
+        "type": "function",
+        "z": "tab_s2b",
+        "name": "Vivo o caído",
+        "func": "const partes = msg.topic.split(\"/\");\nconst quien = partes[1] + \" / \" + partes[2];\nconst vivo  = (msg.payload === \"online\");\n\nnode.status({\n    fill: vivo ? \"green\" : \"red\",\n    shape: \"dot\",\n    text: quien + \": \" + msg.payload\n});\n\nmsg.payload = {\n    dispositivo: quien,\n    estado: msg.payload,\n    retenido: msg.retain === true,\n    visto_en: new Date().toISOString()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 440,
+        "y": 240,
+        "wires": [["dbg_estado"]]
+    },
+    {
+        "id": "dbg_estado",
+        "type": "debug",
+        "z": "tab_s2b",
+        "name": "Estado",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 660,
+        "y": 240,
+        "wires": []
+    }
+]
