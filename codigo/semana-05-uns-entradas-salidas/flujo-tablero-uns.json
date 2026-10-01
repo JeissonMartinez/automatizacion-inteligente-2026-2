@@ -1,0 +1,529 @@
+[
+    {
+        "id": "tab_uns",
+        "type": "tab",
+        "label": "Lab 1 - Tablero UNS",
+        "disabled": false,
+        "info": "Tablero de operación del Laboratorio 1.\n\nEdite SOLO el nodo «Configuración». Para cambiar de bróker, edite el nodo de configuración «Bróker UNS»."
+    },
+    {
+        "id": "broker_uns",
+        "type": "mqtt-broker",
+        "name": "Bróker UNS",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true
+    },
+    {
+        "id": "ui_base",
+        "type": "ui-base",
+        "name": "Laboratorio",
+        "path": "/dashboard",
+        "appIcon": "",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "headerContent": "page",
+        "navigationStyle": "default",
+        "titleBarStyle": "default"
+    },
+    {
+        "id": "ui_tema",
+        "type": "ui-theme",
+        "name": "Unipamplona",
+        "colors": {
+            "surface": "#063266",
+            "primary": "#ad3332",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "ui_pagina",
+        "type": "ui-page",
+        "name": "Tablero UNS",
+        "ui": "ui_base",
+        "path": "/uns",
+        "icon": "factory",
+        "layout": "grid",
+        "theme": "ui_tema",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": "0",
+                "cols": "3"
+            },
+            {
+                "name": "Tablet",
+                "px": "576",
+                "cols": "6"
+            },
+            {
+                "name": "Small Desktop",
+                "px": "768",
+                "cols": "9"
+            },
+            {
+                "name": "Desktop",
+                "px": "1024",
+                "cols": "12"
+            }
+        ],
+        "order": 1,
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "g_entradas",
+        "type": "ui-group",
+        "name": "Entradas",
+        "page": "ui_pagina",
+        "width": "6",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "groupType": "default",
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "g_salidas",
+        "type": "ui-group",
+        "name": "Salidas",
+        "page": "ui_pagina",
+        "width": "6",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "groupType": "default",
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "nota1",
+        "type": "comment",
+        "z": "tab_uns",
+        "name": "1. Edite solo el nodo «Configuración»",
+        "info": "Ponga la misma RUTA y el mismo DISPOSITIVO del programa del ESP32.",
+        "x": 190,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "inicio",
+        "type": "inject",
+        "z": "tab_uns",
+        "name": "Al implementar",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "configuracion"
+            ]
+        ]
+    },
+    {
+        "id": "configuracion",
+        "type": "function",
+        "z": "tab_uns",
+        "name": "Configuración",
+        "func": "// =====================================================================\n// ÚNICO NODO QUE DEBE EDITAR\n// Escriba la misma RUTA y el mismo DISPOSITIVO del programa del ESP32.\n// =====================================================================\nconst RUTA        = \"empresa/sitio/area/linea/celda\";\nconst DISPOSITIVO = \"esp32-01\";\n\n// Nombres de las variables (iguales a VAR_DI, VAR_AI, VAR_DO y VAR_AO)\nconst V = { di: \"pulsador\", ai: \"potenciometro\", do: \"led\", ao: \"brillo\" };\n\n// Nombres de las clases de dato (iguales a los del programa del ESP32)\nconst C = { med: \"medicion\", sal: \"salida\", cmd: \"cmd\", est: \"estado\" };\n\n// ---------------------------------------------------------------------\nconst base = RUTA + \"/\" + DISPOSITIVO;\nflow.set(\"base\", base);\nflow.set(\"V\", V);\nflow.set(\"C\", C);\nnode.status({ fill: \"blue\", shape: \"dot\", text: base });\n\n// Se suscribe a todo lo que cuelga del dispositivo\nreturn { action: \"subscribe\", topic: { topic: base + \"/#\", qos: 1 } };\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "mqtt_in"
+            ]
+        ],
+        "info": ""
+    },
+    {
+        "id": "mqtt_in",
+        "type": "mqtt in",
+        "z": "tab_uns",
+        "name": "UNS (suscripción dinámica)",
+        "topic": "",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "broker_uns",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 1,
+        "x": 590,
+        "y": 100,
+        "wires": [
+            [
+                "clasificar"
+            ]
+        ]
+    },
+    {
+        "id": "clasificar",
+        "type": "function",
+        "z": "tab_uns",
+        "name": "Clasificar",
+        "func": "// Reparte cada mensaje del dispositivo al elemento del tablero que le corresponde.\nconst base = flow.get(\"base\");\nconst V = flow.get(\"V\");\nconst C = flow.get(\"C\");\nif (!base || !msg.topic.startsWith(base + \"/\")) return null;\n\nconst rel = msg.topic.substring(base.length + 1);\nlet p = msg.payload;\nlet valor = (p !== null && typeof p === \"object\" && \"valor\" in p) ? p.valor : p;\nif (typeof valor === \"string\" && valor.trim() !== \"\" && !isNaN(valor)) valor = Number(valor);\n\nswitch (rel) {\n    case C.med + \"/\" + V.di:\n        return [{ payload: valor == 1 ? \"ACTIVA (1)\" : \"inactiva (0)\" }, null, null, null, null];\n    case C.med + \"/\" + V.ai:\n        return [null, { payload: valor, topic: V.ai }, null, null, null];\n    case C.sal + \"/\" + V.do:\n        flow.set(\"do_confirmado\", valor == 1);\n        return [null, null, { payload: valor == 1 }, null, null];\n    case C.sal + \"/\" + V.ao:\n        flow.set(\"ao_confirmado\", valor);\n        return [null, null, null, { payload: valor }, null];\n    case C.est:\n        return [null, null, null, null, { payload: String(p) }];\n}\nreturn null;\n",
+        "outputs": 5,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 100,
+        "wires": [
+            [
+                "txt_di"
+            ],
+            [
+                "graf_ai",
+                "aguja_ai"
+            ],
+            [
+                "sw_do"
+            ],
+            [
+                "sl_ao"
+            ],
+            [
+                "fn_estado"
+            ]
+        ],
+        "info": ""
+    },
+    {
+        "id": "txt_di",
+        "type": "ui-text",
+        "z": "tab_uns",
+        "group": "g_entradas",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "name": "Entrada discreta",
+        "label": "Entrada discreta",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#063266",
+        "wrapText": false,
+        "x": 1060,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "graf_ai",
+        "type": "ui-chart",
+        "z": "tab_uns",
+        "group": "g_entradas",
+        "name": "Gráfica entrada continua",
+        "label": "Entrada continua · últimos 5 min",
+        "order": 4,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisLabel": "",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "",
+        "xAxisFormatType": "auto",
+        "xmin": "",
+        "xmax": "",
+        "yAxisLabel": "",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": "0",
+        "ymax": "100",
+        "bins": 10,
+        "action": "append",
+        "stackSeries": false,
+        "pointShape": "false",
+        "pointRadius": 4,
+        "showLegend": false,
+        "removeOlder": "5",
+        "removeOlderUnit": "60",
+        "removeOlderPoints": "",
+        "colors": [
+            "#ad3332",
+            "#063266",
+            "#eec75c",
+            "#3b2c69",
+            "#dadada",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896"
+        ],
+        "textColor": [
+            "#666666"
+        ],
+        "textColorDefault": true,
+        "gridColor": [
+            "#e5e5e5"
+        ],
+        "gridColorDefault": true,
+        "width": 6,
+        "height": 4,
+        "className": "",
+        "interpolation": "linear",
+        "x": 1080,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "aguja_ai",
+        "type": "ui-gauge",
+        "z": "tab_uns",
+        "name": "Medidor entrada continua",
+        "group": "g_entradas",
+        "order": 3,
+        "width": 3,
+        "height": 3,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "Entrada continua",
+        "units": "%",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#063266"
+            },
+            {
+                "from": "70",
+                "color": "#eec75c"
+            },
+            {
+                "from": "90",
+                "color": "#ad3332"
+            }
+        ],
+        "min": 0,
+        "max": 100,
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "x": 1080,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "fn_estado",
+        "type": "function",
+        "z": "tab_uns",
+        "name": "Texto de estado",
+        "func": "msg.payload = (msg.payload === \"online\") ? \"EN LÍNEA\" : \"FUERA DE LÍNEA\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 200,
+        "wires": [
+            [
+                "txt_estado"
+            ]
+        ],
+        "info": ""
+    },
+    {
+        "id": "txt_estado",
+        "type": "ui-text",
+        "z": "tab_uns",
+        "group": "g_entradas",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "Estado",
+        "label": "Estado del dispositivo",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#063266",
+        "wrapText": false,
+        "x": 1250,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "sw_do",
+        "type": "ui-switch",
+        "z": "tab_uns",
+        "name": "Salida discreta",
+        "label": "Salida discreta",
+        "group": "g_salidas",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "topic",
+        "topicType": "msg",
+        "style": "",
+        "className": "",
+        "layout": "row-spread",
+        "clickableArea": "switch",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "x": 1060,
+        "y": 280,
+        "wires": [
+            [
+                "orden_do"
+            ]
+        ]
+    },
+    {
+        "id": "orden_do",
+        "type": "function",
+        "z": "tab_uns",
+        "name": "Orden salida discreta",
+        "func": "// Publica la orden en cmd. Si en 3 s no llega la confirmación del ESP32,\n// el interruptor vuelve al último valor confirmado.\nconst base = flow.get(\"base\"), V = flow.get(\"V\"), C = flow.get(\"C\");\nconst pedido = msg.payload === true;\nnode.send([{ topic: base + \"/\" + C.cmd + \"/\" + V.do, payload: pedido ? \"1\" : \"0\", qos: 1, retain: false }, null]);\nsetTimeout(() => {\n    const conf = flow.get(\"do_confirmado\");\n    if (conf !== pedido) node.send([null, { payload: conf === true }]);\n}, 3000);\nreturn null;\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1290,
+        "y": 280,
+        "wires": [
+            [
+                "mqtt_out"
+            ],
+            [
+                "sw_do"
+            ]
+        ],
+        "info": ""
+    },
+    {
+        "id": "sl_ao",
+        "type": "ui-slider",
+        "z": "tab_uns",
+        "group": "g_salidas",
+        "name": "Salida continua",
+        "label": "Salida continua (%)",
+        "tooltip": "",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "outs": "end",
+        "topic": "topic",
+        "topicType": "msg",
+        "thumbLabel": "always",
+        "showTicks": "always",
+        "min": 0,
+        "max": 100,
+        "step": "5",
+        "className": "",
+        "iconPrepend": "",
+        "iconAppend": "",
+        "color": "",
+        "colorTrack": "",
+        "colorThumb": "",
+        "showTextField": false,
+        "x": 1060,
+        "y": 340,
+        "wires": [
+            [
+                "orden_ao"
+            ]
+        ]
+    },
+    {
+        "id": "orden_ao",
+        "type": "function",
+        "z": "tab_uns",
+        "name": "Orden salida continua",
+        "func": "// Publica la orden en cmd. Si en 3 s no llega la confirmación del ESP32,\n// el deslizador vuelve al último valor confirmado.\nconst base = flow.get(\"base\"), V = flow.get(\"V\"), C = flow.get(\"C\");\nconst pedido = Math.round(Number(msg.payload));\nnode.send([{ topic: base + \"/\" + C.cmd + \"/\" + V.ao, payload: String(pedido), qos: 1, retain: false }, null]);\nsetTimeout(() => {\n    const conf = flow.get(\"ao_confirmado\");\n    if (conf !== undefined && conf !== pedido) node.send([null, { payload: conf }]);\n}, 3000);\nreturn null;\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1290,
+        "y": 340,
+        "wires": [
+            [
+                "mqtt_out"
+            ],
+            [
+                "sl_ao"
+            ]
+        ],
+        "info": ""
+    },
+    {
+        "id": "mqtt_out",
+        "type": "mqtt out",
+        "z": "tab_uns",
+        "name": "Publicar orden",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "broker_uns",
+        "x": 1520,
+        "y": 310,
+        "wires": []
+    }
+]
