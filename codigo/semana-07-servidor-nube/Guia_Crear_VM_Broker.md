@@ -738,7 +738,7 @@ curso/prueba Hola desde Windows
 
 Y ya con eso queda todo el recorrido completo: Publicador Windows → Broker en AWS → Suscriptor Windows
 
-> 📌 **Reto:** Con los compañeros de su grupo, averiguen cómo hacer para que un compañero se suscriba y otro publique, usando el mismo broker y exactamente el mismo tópico. 
+> 📌 **Reto -----> TAREA <----- ⚠️:** Con los compañeros de su grupo, averiguen cómo hacer para que un compañero se suscriba y otro publique, usando el mismo broker y exactamente el mismo tópico. 
 
 6. Terminar
 
@@ -753,6 +753,128 @@ Remove-Variable credencial, claveSegura
 Se podrá cerrar las terminales y **Mosquitto seguirá funcionando en AWS** sin problema.
 
 > ℹ️ Todas estas conexiones de pub y sub no usan el `.pem` porque ese archivo sirve solo para administrar Ubuntu por SSH. En pub y sub lo que utilizamos son las credenciales de MQTT (usuario y contraseña creadas en pasos previos).
+
+### Pasos 2 al 6 en MacOS:
+
+2. Instalar los clientes MQTT en la Mac
+Se abre una terminal, dejando abierta la conexión SSH, es decir, que no estemos conectados a Ubuntu del VM:
+
+```zsh
+admin@MacBook-Pro-de-Admin …
+```
+
+Ahora, si no se tiene instalado Mosquitto, se ejecuta (teniendo instalado previamente Homebrew):
+
+```zsh
+brew install mosquitto
+``` 
+
+Esto instala las herramientas necesarias. No se necesitará iniciar otro broker en el computador (Mac). Si no se tieene Homebrew, también se puede usar MQTT Explorer como cliente gráfico.
+
+3. Suscribirse a un tópico
+
+En esa terminal local, se ejecuta lo siguiente, sustituyendo la IPv4 pública de la instancia VM:
+
+```zsh
+mosquitto_sub \
+  -h IP_PUBLICA \
+  -p 1883 \
+  -u profe \
+  -t 'curso/prueba' \
+  -v
+``` 
+
+En el comando anterior, faltaría proporcionar la contraseña. Esa que se creó en pasos anteriores para el usuario `profe` (en mi caso).
+
+En Mac la podemos escribir directamente y dejarla en el historial guardada para volver a usarla después como predeterminada en macOS:
+
+```zsh
+read -s "MQTT_CLAVE?Contraseña MQTT: "
+echo
+``` 
+
+Y luego se ejecuta completo el comando previo:
+
+```zsh
+mosquitto_sub \
+  -h IP_PUBLICA \
+  -p 1883 \
+  -u profe \
+  -P "$MQTT_CLAVE" \
+  -t 'curso/prueba' \
+  -v
+```
+
+La contraseña como tal no queda inscrita literalmente, aunque al pasarla con `-P`puede ser visible temporalmente para depuración.
+
+| Opción | Significado |
+|---|---|
+| `-h` | Dirección del broker. |
+| `-p` | Puerto de conexión. |
+| `-u` | Usuario MQTT. |
+| `-P` | Contraseña MQTT. |
+| `-t` | Tópico al que te suscribes. |
+| `-v` | Mostrar tópico y contenido. |
+
+El tópico es el nombre que le damos al canal de mensajes que queremos compartir con MQTT. Ya vimos en el laboratorio pasado cómo definirlos aplicando UNS. Este ejercicio crea uno solo, y de prueba. 
+
+Cuando la terminal se conecte, quedará esperando, sin mostrar nada. Eso es normal, como ya lo vimos en prácticas pasadas.
+
+4. Publicar desde otra terminal
+
+Abrir una nueva y segunda terminal local, y colocar la contraseña de la misma manera:
+
+```zsh
+read -s "MQTT_CLAVE?Contraseña MQTT: "
+echo
+```
+
+Luego se publica el mensaje
+
+```zsh
+mosquitto_pub \
+  -h IP_PUBLICA \
+  -p 1883 \
+  -u profe \
+  -P "$MQTT_CLAVE" \
+  -t 'curso/prueba' \
+  -m 'Hola desde mi Mac'
+``` 
+
+`-m` indica el contenido del mensaje. 
+
+Luego, en la terminal donde se dejó la suscripción, se debería de ver algo como:
+
+```zsh
+curso/prueba Hola desde mi Mac
+``` 
+
+Si eso es así, entonces el recorrido completo:
+
+```text
+ublicador en tu Mac → Internet → Mosquitto en AWS
+                                     ↓
+Suscriptor en tu Mac ← Internet ← Mosquitto
+```
+
+Se cumplió con éxito. Aunque ambos clientes están en el computador (Mac), el mensaje pasa por el broker AWS. Es decir, funcionaron varias cosas:
+- Verificación de acceso externo
+- Autenticación con el usuario y contraseña de MQTT creados
+- Distribución de mensajes
+
+5. Terminar la prueba
+
+En la terminal del suscriptor se pulsa **Ctrl+C**. Después, en ambas terminales locales, se elimina la variable temporal de la contraseña:
+
+```zsh
+unset MQTT_CLAVE
+```
+
+El broker seguirá funcionando en AWS sin problema.
+
+
+
+
 
 
 
