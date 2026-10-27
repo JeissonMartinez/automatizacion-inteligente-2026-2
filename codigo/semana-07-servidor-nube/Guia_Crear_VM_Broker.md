@@ -265,7 +265,7 @@ icacls .\clave-broker.pem
 
 **En MacOS** el procedimiento se realiza solo con el siguiente comando en la terminal zsh:
 
-```zsh
+```PowerShell
 chmod 400 clave-broker.pem
 ```
 
@@ -278,7 +278,7 @@ Ahora, en nuestro computador, debemos ingresar desde la terminal hasta la ubicac
 
 Estando en esa ubicación, realizamos la conexión con el siguiente comando:
 
-```zsh
+```PowerShell
 ssh -i clave-broker-profe.pem ubuntu@IP_PUBLICA
 ```
 
@@ -286,7 +286,7 @@ El nombre del archivo debe coincidir con el `.pem` de ustedes y `IP_PUBLICA` deb
 
 Deberá salir algo como esto:
 
-```zsh
+```PowerShell
 admin@MacBook-Pro-de-Admin Semana_7 % ssh -i clave-broker.pem ubuntu@15.229.1.164
 Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 7.0.0-1014-aws x86_64)
 
@@ -335,7 +335,7 @@ Después instalaremos Docker y configuraremos Mosquitto.
 
 Estos pasos siguientes se deben hacer con la conexión establecida con nuestra Instancia VM por la terminal usando el comando:
 
-```zsh
+```PowerShell
 ssh -i clave-broker-profe.pem ubuntu@IP_PUBLICA
 ```
 
@@ -356,7 +356,7 @@ Ahora, Docker:
 
 En la terminal de Ubuntu:
 
-```zsh
+```PowerShell
 sudo apt update
 ``` 
 
@@ -366,13 +366,13 @@ sudo apt update
 
 Descargar el instalador oficial:
 
-```zsh
+```PowerShell
 curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
 ``` 
 
 Luego ejecutarlo:
 
-```zsh
+```PowerShell
 sudo sh /tmp/get-docker.sh
 ```
 
@@ -380,7 +380,7 @@ sudo sh /tmp/get-docker.sh
 
 3. Permitir que el usuario `ubuntu` utilice Docker
 
-```zsh
+```PowerShell
 sudo usermod -aG docker ubuntu
 ```
 
@@ -389,13 +389,13 @@ Esto agrega `ubuntu` al grupo `docker`. Ese grupo concede un control amplio sobr
 Para que la sesión reconozca el nuevo grupo, nos debemos salir y volver a ingresar.
 
 Para salir: 
-```zsh
+```PowerShell
 exit
 ```
 
 Volver a ingresar como al inicio:
 
-```zsh
+```PowerShell
 ssh -i clave-broker-profe.pem ubuntu@IP_PUBLICA
 ```
 
@@ -405,7 +405,7 @@ El nombre del archivo debe coincidir con el `.pem` de ustedes y `IP_PUBLICA` deb
 
 Ya dentro de Ubuntu, se debe ejecutar:
 
-```zsh
+```PowerShell
 docker --version
 docker compose version
 docker run --rm hello-world
@@ -426,7 +426,7 @@ Estos pasos parten de que ya funcionó la prueba `hello-world` de Docker en el �
 
 Ejecutamos el siguiente comando dentro de Ubuntu:
 
-```zsh
+```PowerShell
 cd ~
 git clone https://github.com/JeissonMartinez/automatizacion-inteligente-2026-2.git
 ```
@@ -436,7 +436,7 @@ git clone https://github.com/JeissonMartinez/automatizacion-inteligente-2026-2.g
 
 2. Preparar una carpeta independiente para el broker
 
-```zsh
+```PowerShell
 mkdir -p ~/broker-uns/mosquitto/config
 
 cp ~/automatizacion-inteligente-2026-2/codigo/semana-07-servidor-nube/docker-compose.yml \
@@ -466,7 +466,7 @@ Estos comandos crean esta estructura en el VM:
 
 La configuración ya contiene:
 
-```zsh
+```PowerShell
 allow_anonymous false
 password_file /mosquitto/config/passwd
 ````
@@ -478,7 +478,7 @@ Eso significa: rechazar conexiones anónimas y consultar los usuarios en el arch
 
 Desde la ruta `~/broker-uns` ejecutar:
 
-```zsh
+```PowerShell
 docker compose pull
 ```
 
@@ -491,7 +491,7 @@ Todavía no estamos arrancando el broker.
 
 Desde la ruta `~/broker-uns` ejecutar:
 
-```zsh
+```PowerShell
 docker run --rm -it \
   -v "$PWD/mosquitto/config:/mosquitto/config" \
   eclipse-mosquitto:2 \
@@ -521,7 +521,7 @@ Para agregar posteriormente otro usuario, ejecuta el mismo comando sin `-c` y ca
 
 5. Ajustar los permisos
 
-```zsh
+```PowerShell
 sudo chown 1883:1883 mosquitto/config/passwd
 sudo chmod 600 mosquitto/config/passwd
 ```
@@ -533,13 +533,13 @@ En la imagen oficial, Mosquitto utiliza el identificador de usuario **1883**. Aq
 
 6. Iniciar el broker 
 
-```zsh
+```PowerShell
 docker compose config --quiet
 ````
 
 Comprueba que el archivo de Compose sea válido. Si termina sin mostrar errores, entonces ejecutar:
 
-```zsh
+```PowerShell
 docker compose up -d
 ```
 
@@ -548,7 +548,7 @@ docker compose up -d
 
 Después lo podemos consultar:
 
-```zsh
+```PowerShell
 docker compose ps
 docker compose logs --tail 40 mosquitto
 ```
@@ -566,7 +566,7 @@ Si aparece Restarting o errores al leer passwd, se debecorregir antes de continu
 
 Ejecutar:
 
-```zsh
+```PowerShell
 docker exec ai-mosquitto \
   mosquitto_sub -h localhost -t 'prueba/#' -W 5
 ```
@@ -606,6 +606,7 @@ En la consola de AWS:
 
 Guardar las reglas y conservar la regla SSH del puerto 22.
 
+### Pasos 2 al 6 en Windows:
 
 2. Instalar los clientes MQTT en el computador
 
@@ -613,13 +614,149 @@ Usaremos dos herramientas:
 - `mosquitto_sub`: se suscribe a un tópico y muestra los mensajes recibidos.
 - `mosquitto_pub`: publica un mensaje en un tópico.
 
-Abrir otra terminal de el computador, dejando abierta la conexión SSH. Comprueba que el indicador muestre algo como (según su pc saldrá algo diferente cuando abra la temrinal):
+⚠️ **Si no se tiene instalado Mosquitto, realizar los pasos siguientes:**
 
-```zsh
+- Abrir la página oficial: mosquitto.org/download.
+- En Windows, descarga el instalador apropiado para su equipo, normalmente de 64 bits.
+- Ejecutar el instalador. Si ofrece instalar Mosquitto como servicio, se puede desmarcar esa opción: solo necesitamos las herramientas cliente, porque el broker ya está en AWS.
+
+Normalmente los programas quedan en: 
+
+```PowerShell
+C:\Program Files\mosquitto\
+```
+
+Abrir la PowerShell y verificar que existen:
+
+```PowerShell
+Test-Path "C:\Program Files\mosquitto\mosquitto_sub.exe"
+Test-Path "C:\Program Files\mosquitto\mosquitto_pub.exe"
+```
+
+Ambos deben mostrar `True`.
+
+
+ℹ️ **Si ya se tiene instalado Mosquitto realizar los pasos siguientes:**
+
+Abrir otra terminal del computador, dejando abierta la conexión SSH. Comprueba que el indicador muestre algo como (según su pc saldrá algo diferente cuando abra la temrinal):
+
+```PowerShell
 admin@MacBook-Pro-de-Admin …
 ``` 
 
 Así se sabe que está ejecutando comandos localmente y no en el VM Ubuntu de AWS.
+
+3. Comprobar el acceso al puerto del broker
+
+En PowerShell, guardar la IP pública de la VM en una variable, así no se tiene que esta digitando siempre:
+
+```PowerShell
+$broker = "IP_PUBLICA_DE_LA_VM"
+```
+
+> Reemplazar el texto entre comillas por la dirección real de su VM.
+
+Ahora, se verifica:
+
+```PowerShell
+Test-NetConnection -ComputerName $broker -Port 1883
+```
+
+Y se busca que de un resultado como:
+
+```text
+TcpTestSucceeded : True
+```
+
+Si sale esto, entonces ya se puede llegar al puerto del broker desde su computador. Todavía no se verifica la contraseña ni el intercambio de mensajes MQTT, pero ya es una buena señal.
+
+Si muestra False, se de revisar la IP pública actual, la regla TCP 1883 y que Mosquitto siga ejecutándose. [Revisar-Investigar]
+
+
+4. Suscribirse a un tópico
+
+Usaremos dos ventanas en la terminal (PowerShell). Como ya lo hemos hecho antes, una para publicar y otra para suscribir.
+
+En la **primera terminal**, establecemos los datos de conexión:
+
+```PowerShell
+$broker = "IP_PUBLICA_DE_LA_VM"
+$usuario = "profe"
+$claveSegura = Read-Host "Contraseña MQTT" -AsSecureString
+$credencial = New-Object System.Management.Automation.PSCredential ($usuario, $claveSegura)
+```
+`Read-Host -AsSecureString` solicita la contraseña ocultando lo escrito. Para este ejemplo, `profe`  es el usuario que yo creé en pasos anteriores; ustedes coloquen el que definieron.
+
+Una vez se hace conexión, se ejecuta la suscripción:
+
+```PowerShell
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h $broker -p 1883 -u $usuario -P ($credencial.GetNetworkCredential().Password) -t "curso/prueba" -v
+``` 
+
+La explicación de ese comando:
+
+| Elemento | Significado |
+|---|---|
+| `&` | Permite ejecutar el programa cuya ruta está entre comillas. |
+| `mosquitto_sub.exe` | Cliente que recibe mensajes. |
+| `-h` | Dirección del broker. |
+| `-p 1883` | Puerto MQTT. |
+| `-u` y `-P` | Usuario y contraseña del broker. |
+| `-t "curso/prueba"` | Tópico al que nos suscribimos. |
+| `-v` | Muestra el tópico y el contenido recibido. |
+
+
+Esa ventana quedará esperando mensajes. Ya sabemos que es normal que no muestre nada todavía porque aún no hemos enviado o publicado nada.
+
+> **Tener en cuenta:** Aunque no escribimos la contraseña directamente en el historial, el cliente la recibe como argumento y puede quedar visible temporalmente para herramientas locales de inspección de procesos. Es decir, para pruebas.
+
+5. Publicar al tópico de prueba
+
+Desde otra terminal (PowerShell), creamos el publicador. Las variables de la primera no se comparten automáticamente, así que debemos crear la conexión nuevamente:
+
+
+```PowerShell
+$broker = "IP_PUBLICA_DE_LA_VM"
+$usuario = "profe"
+$claveSegura = Read-Host "Contraseña MQTT" -AsSecureString
+$credencial = New-Object System.Management.Automation.PSCredential ($usuario, $claveSegura)
+```
+
+Y se hace la publicación:
+
+```PowerShell
+& "C:\Program Files\mosquitto\mosquitto_pub.exe" -h $broker -p 1883 -u $usuario -P ($credencial.GetNetworkCredential().Password) -t "curso/prueba" -m "Hola desde Windows"
+```
+
+Ya saben: `-m` indica el contenido del mensaje.
+
+Al ejecutar la publicación, en la primera ventana (la de suscriptor) debe aparecer el mensaje:
+
+```PowerShell
+curso/prueba Hola desde Windows
+``` 
+
+Y ya con eso queda todo el recorrido completo: Publicador Windows → Broker en AWS → Suscriptor Windows
+
+> 📌 **Reto:** Con los compañeros de su grupo, averiguen cómo hacer para que un compañero se suscriba y otro publique, usando el mismo broker y exactamente el mismo tópico. 
+
+6. Terminar
+
+En la ventana del suscriptor, pulsar **Control+C**.
+
+En ambas ventanas se puede eliminar las variables con las credenciales (no dejar registros):
+
+```PowerShell
+Remove-Variable credencial, claveSegura
+```
+
+Se podrá cerrar las terminales y **Mosquitto seguirá funcionando en AWS** sin problema.
+
+> ℹ️ Todas estas conexiones de pub y sub no usan el `.pem` porque ese archivo sirve solo para administrar Ubuntu por SSH. En pub y sub lo que utilizamos son las credenciales de MQTT (usuario y contraseña creadas en pasos previos).
+
+
+
+
 
 
 
