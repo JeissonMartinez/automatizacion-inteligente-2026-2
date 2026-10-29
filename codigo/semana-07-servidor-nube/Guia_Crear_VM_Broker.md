@@ -422,7 +422,7 @@ Cuando pase esta comprobación, tendremos Ubuntu y Docker funcionando.
 
 Estos pasos parten de que ya funcionó la prueba `hello-world` de Docker en el último paso.
 
-1. Descargar el repositorio en la VM
+1. **Descargar el repositorio en la VM**
 
 Ejecutamos el siguiente comando dentro de Ubuntu:
 
@@ -434,7 +434,7 @@ git clone https://github.com/JeissonMartinez/automatizacion-inteligente-2026-2.g
 `git clone` descarga una copia del repositorio.
 
 
-2. Preparar una carpeta independiente para el broker
+2. **Preparar una carpeta independiente para el broker**
 
 ```PowerShell
 mkdir -p ~/broker-uns/mosquitto/config
@@ -474,7 +474,7 @@ password_file /mosquitto/config/passwd
 Eso significa: rechazar conexiones anónimas y consultar los usuarios en el archivo `passwd`. Que ahora debemos crearlo.
 
 
-3. Descargar la imagen de Mosquitto
+3. **Descargar la imagen de Mosquitto**
 
 Desde la ruta `~/broker-uns` ejecutar:
 
@@ -487,7 +487,7 @@ Una imagen es la plantilla del software que ejecutará Docker. Aquí se utiliza 
 Todavía no estamos arrancando el broker.
 
 
-4. Crear nuestro usuario del broker
+4. **Crear nuestro usuario del broker**
 
 Desde la ruta `~/broker-uns` ejecutar:
 
@@ -519,7 +519,7 @@ El archivo `passwd` almacena verificadores de contraseña mediante hash, no las 
 Para agregar posteriormente otro usuario, ejecuta el mismo comando sin `-c` y cambia profe por su nombre. Repetir `-c` sobrescribe el archivo y elimina los usuarios anteriores.
 
 
-5. Ajustar los permisos
+5. **Ajustar los permisos**
 
 ```PowerShell
 sudo chown 1883:1883 mosquitto/config/passwd
@@ -531,11 +531,13 @@ En la imagen oficial, Mosquitto utiliza el identificador de usuario **1883**. Aq
 - `chmod 600` permite únicamente al propietario leerlo y modificarlo.
 
 
-6. Iniciar el broker 
+6. **Iniciar el broker**
 
 ```PowerShell
 docker compose config --quiet
 ````
+
+`--quiet` significa “no mostrar la configuración; informar solamente si hay errores”.
 
 Comprueba que el archivo de Compose sea válido. Si termina sin mostrar errores, entonces ejecutar:
 
@@ -545,24 +547,77 @@ docker compose up -d
 
 `up` crea e inicia el servicio; `-d` lo deja funcionando en segundo plano.
 
+La respuesta debe ser algo como esto:
+
+```PowerShell
+[+] up 1/1
+ ✔ Container ai-mosquitto Running 
+```
+
+- `1/1`: Compose completó la operación prevista para el único contenedor del proyecto.
+- `ai-mosquitto Running`: ese contenedor está ejecutándose.
 
 Después lo podemos consultar:
 
 ```PowerShell
 docker compose ps
-docker compose logs --tail 40 mosquitto
 ```
 
 Y debemos ver el contenedor `ai-mosquitto` activo y un registro parecido a:
 
+Como en la siguiente imagen:
+
+![Respuesta de la inicialización del broker](./img/28_Docker-compose-up.png)
+
+`Docker compose ps` muestra una tabla con el estado de los contenedores del proyecto:
+
+| Columna | Tu resultado | Significado |
+|---|---|---|
+| **NAME** | `ai-mosquitto` | Nombre del contenedor. |
+| **IMAGE** | `eclipse-mosquitto:2` | Imagen utilizada: Mosquitto, serie principal 2. |
+| **COMMAND** | `"/docker-entrypoint.…"` | Programa de arranque del contenedor.|
+| **SERVICE** | `mosquitto` | Nombre del servicio dentro de `docker-compose.yml`. |
+| **CREATED** | `38 hours ago` | El contenedor fue creado hace aproximadamente 38 horas. |
+| **STATUS** | `Up 38 hours` | Lleva aproximadamente 38 horas en ejecución desde su último arranque. |
+| **PORTS** | `…1883->1883/tcp` | Conexión entre el puerto de la VM y el puerto del contenedor. |
+
+La parte de los puertos, significa lo siguiente:
+- `0.0.0.0:1883:` Docker publica el puerto 1883 en todas las direcciones IPv4 de la VM.
+- `[::]:1883`: lo publica también para IPv6.
+- `->1883/tcp`: dirige esas conexiones al puerto TCP 1883 del contenedor.
+
+> **Recorrido:** Cliente → VM de AWS, puerto 1883 → Contenedor, puerto 1883 → Mosquitto
+
+Ahora, se revisan los logs para validar:
+
+```PowerShell
+docker compose logs --tail 40 mosquitto
+```
+
+Debe salir algo como la siguiente imagen y asegurar que salga la confirmación de la activación del puerto 1883:
 ```text
 Opening ipv4 listen socket on port 1883.
 ```
 
+![Docker Mosquitto Logs](./img/29_Docker-Mosquitto-log.png)
+
+ℹ️ **Explicación:**
+
+Todos los mensajes tienen la misma estructura:
+```PowerShell
+ai-mosquitto | 1793105765: mensaje
+``` 
+Que significa:
+- `ai-mosquitto`: contenedor que generó el mensaje. Docker Compose agrega ese prefijo.
+- `1793105765`: fecha y hora expresadas como tiempo Unix, en segundos desde el 1 de enero de 1970 a las 00:00 UTC. Varias líneas comparten el número porque ocurrieron durante el mismo segundo.
+- Después de `:` aparece el mensaje de Mosquitto.
+
+Puede consultar o investigar cada uno de los mensajes para confirmar su significado.
+
 Si aparece Restarting o errores al leer passwd, se debecorregir antes de continuar. [Consultar-Investigar].
 
 
-7. Comprobar que rechaza conexiones sin credenciales
+7. **Comprobar que rechaza conexiones sin credenciales**
 
 Ejecutar:
 
@@ -571,13 +626,13 @@ docker exec ai-mosquitto \
   mosquitto_sub -h localhost -t 'prueba/#' -W 5
 ```
 
-`docker exec` ejecuta una orden dentro del contenedor existente. `mosquitto_sub` intenta suscribirse a mensajes; aquí lo hacemos intencionalmente sin usuario ni contraseña.
+Significado:
+- `docker exec` ejecuta una orden dentro del contenedor existente
+- `mosquitto_sub` intenta suscribirse a mensajes; aquí lo hacemos intencionalmente sin usuario ni contraseña.
+
 
 El resultado esperado es un rechazo parecido a:
-
-```text
-Connection error: Connection Refused: not authorised
-```
+![Comprobación de rechazo de conexiones](./img/30_Docker-Mosquitto-rechazo.png)
 
 En esta prueba, el rechazo es el resultado correcto: demuestra que el broker no permite acceso anónimo.
 
@@ -604,7 +659,10 @@ En la consola de AWS:
 | Origen | **Mi IP** |
 | Descripción | `MQTT desde mi computador` |
 
+![Configurar una regla de seguridad](./img/31_Config_seguridad_regla.png)
+
 Guardar las reglas y conservar la regla SSH del puerto 22.
+
 
 ### Pasos 2 al 6 en Windows:
 
@@ -756,7 +814,8 @@ Se podrá cerrar las terminales y **Mosquitto seguirá funcionando en AWS** sin 
 
 ### Pasos 2 al 6 en MacOS:
 
-2. Instalar los clientes MQTT en la Mac
+2. **Instalar los clientes MQTT en la Mac**
+
 Se abre una terminal, dejando abierta la conexión SSH, es decir, que no estemos conectados a Ubuntu del VM:
 
 ```zsh
@@ -771,7 +830,7 @@ brew install mosquitto
 
 Esto instala las herramientas necesarias. No se necesitará iniciar otro broker en el computador (Mac). Si no se tieene Homebrew, también se puede usar MQTT Explorer como cliente gráfico.
 
-3. Suscribirse a un tópico
+3. **Suscribirse a un tópico**
 
 En esa terminal local, se ejecuta lo siguiente, sustituyendo la IPv4 pública de la instancia VM:
 
@@ -805,6 +864,10 @@ mosquitto_sub \
   -v
 ```
 
+Debe salir algo como esto:
+
+![Conexión con broker](./img/32_Docker-Mosquitto-Conexion.png)
+
 La contraseña como tal no queda inscrita literalmente, aunque al pasarla con `-P`puede ser visible temporalmente para depuración.
 
 | Opción | Significado |
@@ -820,7 +883,9 @@ El tópico es el nombre que le damos al canal de mensajes que queremos compartir
 
 Cuando la terminal se conecte, quedará esperando, sin mostrar nada. Eso es normal, como ya lo vimos en prácticas pasadas.
 
-4. Publicar desde otra terminal
+<br>
+
+4. **Publicar desde otra terminal**
 
 Abrir una nueva y segunda terminal local, y colocar la contraseña de la misma manera:
 
@@ -843,6 +908,8 @@ mosquitto_pub \
 
 `-m` indica el contenido del mensaje. 
 
+![Ejemplo de publicación en mosquitto](./img/33_Docker-Mosquitto-Pub.png)
+
 Luego, en la terminal donde se dejó la suscripción, se debería de ver algo como:
 
 ```zsh
@@ -856,6 +923,10 @@ ublicador en tu Mac → Internet → Mosquitto en AWS
                                      ↓
 Suscriptor en tu Mac ← Internet ← Mosquitto
 ```
+
+Sale algo como esto:
+
+![Ejemplo de suscripción en mosquitto](./img/34_Docket-Mosquitto-Sub.png)
 
 Se cumplió con éxito. Aunque ambos clientes están en el computador (Mac), el mensaje pasa por el broker AWS. Es decir, funcionaron varias cosas:
 - Verificación de acceso externo
