@@ -72,8 +72,11 @@ Esa última línea es el **protocolo de línea** (*line protocol*) de InfluxDB. 
 | 2 | Entra por SSH | `ssh -i clave-broker.pem ubuntu@IP_PUBLICA` |
 | 3 | El broker de la semana 7 corre | `cd ~/broker-uns && docker compose ps` muestra `ai-mosquitto` *Up* |
 | 4 | El broker exige credenciales | La prueba sin usuario responde `not authorised` |
+| 5 | Su dispositivo publica en la **jerarquía acordada** en el Lab 1, **una variable por tópico** | MQTT Explorer muestra `…/dispositivo/medicion/<variable>` con un mensaje `{"valor":…,"unidad":…}` |
 
-Si algo falla, vuelva a la guía de la semana 7: `codigo/semana-07-servidor-nube/Guia_Crear_VM_Broker.md`.
+Si fallan los requisitos 1 a 4, vuelva a la guía de la semana 7: `codigo/semana-07-servidor-nube/Guia_Crear_VM_Broker.md`.
+
+Si falla el 5, porque su dispositivo publica varias variables juntas en un solo mensaje, resuélvalo primero con el **Anexo A** al final de esta guía.
 
 **Todos los comandos de esta guía se ejecutan dentro de la VM**, en la terminal SSH, salvo que se diga otra cosa.
 
@@ -328,7 +331,9 @@ Hay dos fuentes posibles. Pueden coexistir.
 
 ### Opción 1 · El ESP32 del Lab 1
 
-Si su montaje ya apunta al broker de la VM (la tarea de esta semana), no hay que hacer nada más. Telegraf ya está suscrito.
+Si su montaje ya apunta al broker de la VM (la tarea de esta semana) y cumple el requisito 5 del paso previo, no hay que hacer nada más. Telegraf ya está suscrito.
+
+Si su dispositivo publica un paquete con varias variables, Telegraf no lo va a guardar. Vea el **Anexo A**.
 
 ### Opción 2 · El simulador
 
@@ -556,6 +561,127 @@ InfluxDB borra sola los datos con más de 30 días (`DOCKER_INFLUXDB_INIT_RETENT
 - El ESP32 publica el potenciómetro cada 2 s. En un mes, ¿cuántos puntos son? ¿Necesita esa resolución para todo el mes?
 - Si el broker se cae 10 minutos, ¿qué datos se pierden y cuáles no? ¿Cambia la respuesta con la opción B?
 - ¿Qué información del estado `online`/`offline` serviría para calcular cuánto tiempo estuvo disponible una máquina?
+
+---
+
+## Anexo A · Dispositivos que publican varias variables en un solo mensaje
+
+Algunos montajes usan el ESP32 como **pasarela**: otro controlador (un Arduino, un PLC) lee las señales y le envía al ESP32 una trama con todo junto, por serie o RS485. Lo más sencillo es publicar esa trama tal cual:
+
+```text
+…/estacion-1/datos   →   {"T1":24.5,"in1":1,"out1":0,"fase":3}
+```
+
+Funciona, pero **no cumple el espacio de nombres acordado**, y eso tiene un costo:
+
+| Prueba de diseño (Tema 4) | Con la trama en un solo tópico |
+|---|---|
+| 1 · Una suscripción trae toda una clase | ❌ `+/+/+/+/+/+/medicion/#` no la encuentra: no hay niveles de dispositivo, clase ni variable |
+| 3 · Un consumidor nuevo ve el dispositivo sin cambios | ❌ Cada consumidor (Telegraf, Grafana, un modelo de aprendizaje automático) necesita una regla especial solo para ese equipo |
+
+Ese segundo punto es la **integración punto a punto** que el UNS existe para evitar. La regla de la industria es que **el dispositivo se adapta al espacio de nombres, no cada consumidor al dispositivo**.
+
+### A.1 La solución: desempaquetar en el ESP32
+
+El ESP32 sigue recibiendo la misma trama. El otro controlador no cambia. Lo único que cambia es cómo el ESP32 la publica: **una variable por tópico**, con su clase y su unidad.
+
+```text
+{"T1":24.5,"in1":1,"out1":0,"fase":3}
+        │
+        ▼  ESP32
+…/estacion-1/esp32-01/medicion/temperatura      {"valor":24.50,"unidad":"C"}
+…/estacion-1/esp32-01/medicion/confirmacion-1   {"valor":1.00,"unidad":"bool"}
+…/estacion-1/esp32-01/salida/rele-1             {"valor":0.00,"unidad":"bool"}   (retenido)
+…/estacion-1/esp32-01/medicion/fase             {"valor":3.00,"unidad":"num"}
+```
+
+### A.2 El código
+
+Agregue esto al programa del ESP32, después de crear el objeto `mqtt`. No requiere librerías adicionales.
+
+```cpp
+// ── Desempaquetar la trama: una variable por tópico ─────────────────
+// Ruta acordada hasta el dispositivo, sin barra al final
+#define BASE_UNS "unipamplona/villa-del-rosario/lab-automatizacion/banco-x/estacion-1/esp32-01"
+
+struct Senal {
+  const char* llave;      // nombre dentro de la trama
+  const char* clase;      // medicion o salida
+  const char* variable;   // nombre en el UNS: minúsculas y guiones
+  const char* unidad;
+};
+
+// Una fila por cada valor de la trama. CAMBIE ESTA TABLA por la suya.
+const Senal SENALES[] = {
+  // llave     clase        variable           unidad
+  { "T1",     "medicion",  "temperatura",     "C"    },
+  { "in1",    "medicion",  "confirmacion-1",  "bool" },
+  { "out1",   "salida",    "rele-1",          "bool" },
+  { "fase",   "medicion",  "fase",            "num"  },
+};
+const int N_SENALES = sizeof(SENALES) / sizeof(SENALES[0]);
+
+// Busca "llave": número dentro del JSON. Devuelve false si no lo encuentra.
+bool extraerNumero(const char* json, const char* llave, float& valor) {
+  char patron[24];
+  snprintf(patron, sizeof(patron), "\"%s\"", llave);
+  const char* p = strstr(json, patron);
+  if (!p) return false;
+  p = strchr(p + strlen(patron), ':');
+  if (!p) return false;
+  char* fin;
+  valor = strtof(p + 1, &fin);
+  return fin != p + 1;               // false si después de ':' no hay número
+}
+
+void publicarDesempaquetado(const char* json) {
+  char topico[160], mensaje[64];
+  for (int i = 0; i < N_SENALES; i++) {
+    float v;
+    if (!extraerNumero(json, SENALES[i].llave, v)) continue;
+    snprintf(topico, sizeof(topico), "%s/%s/%s",
+             BASE_UNS, SENALES[i].clase, SENALES[i].variable);
+    snprintf(mensaje, sizeof(mensaje), "{\"valor\":%.2f,\"unidad\":\"%s\"}",
+             v, SENALES[i].unidad);
+    bool retener = (strcmp(SENALES[i].clase, "salida") == 0);  // salidas retenidas
+    mqtt.publish(topico, mensaje, retener);
+  }
+}
+```
+
+Y en la función que recibe la trama, donde hoy se publica el JSON completo:
+
+```cpp
+// Antes:
+mqtt.publish(TOPICO_DATOS, jsonLimpio.c_str());
+
+// Ahora:
+publicarDesempaquetado(jsonLimpio.c_str());
+```
+
+Si un valor de la trama no es un número (por ejemplo, `"T1":"error"`), esa variable simplemente no se publica en ese ciclo. Las demás sí.
+
+### A.3 Lo demás también entra en la jerarquía
+
+| Hoy | Debe quedar | Por qué |
+|---|---|---|
+| `…/estacion-1/estado` | `…/estacion-1/esp32-01/estado` | El estado es **del dispositivo**. Cambie también el tópico del LWT en `mqtt.connect(...)` |
+| Una sola orden para todo (`…/PC` con `{"start":1}`) | `…/esp32-01/cmd/<variable>`, por ejemplo `cmd/arranque` o `cmd/rele-1` | Clase `cmd`, una orden por tópico, **QoS 1 y sin retener** |
+| Llave `estado` dentro de la trama (fase de una máquina de estados) | `medicion/fase` | En el UNS, `estado` significa `online`/`offline`. Otro significado confunde |
+| Nombres con mayúsculas (`PC`, `TEMP`) | `cmd/arranque`, `medicion/temperatura` | Regla de nombrado: todo en minúsculas |
+
+### A.4 Cómo verificar
+
+1. Suscríbase con la prueba de diseño 1. Debe ver **todas** sus mediciones con una sola suscripción:
+
+   ```bash
+   docker exec ai-mosquitto mosquitto_sub -u profe -P 'SU_CLAVE' \
+     -t '+/+/+/+/+/+/medicion/#' -v
+   ```
+
+2. Repita el **paso 9**. Sus variables deben aparecer en InfluxDB sin que nadie haya tocado `telegraf.conf`. Esa es la prueba de que el diseño funciona.
+
+3. Actualice su tablero de Node-RED para que lea los tópicos nuevos. Mientras lo hace puede publicar las dos formas al tiempo, pero la entrega debe quedar solo con la jerarquía acordada.
 
 ---
 
