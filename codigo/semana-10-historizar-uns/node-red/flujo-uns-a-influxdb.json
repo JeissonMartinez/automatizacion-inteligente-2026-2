@@ -1,0 +1,170 @@
+[
+  {
+    "id": "t10",
+    "type": "tab",
+    "label": "UNS → InfluxDB (opción B)",
+    "disabled": false,
+    "info": "Opción B de la semana 10: Node-RED reemplaza a Telegraf como puente entre el broker y InfluxDB.\nNo instala paquetes: escribe con la API HTTP de InfluxDB."
+  },
+  {
+    "id": "c10",
+    "type": "comment",
+    "z": "t10",
+    "name": "Edite: 1) servidor y usuario del broker  2) las tres líneas de «A protocolo de línea»  3) el token en «Escribir en InfluxDB»",
+    "info": "",
+    "x": 440,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "b10",
+    "type": "mqtt-broker",
+    "name": "Bróker UNS nube",
+    "broker": "IP_PUBLICA",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "m10",
+    "type": "mqtt in",
+    "z": "t10",
+    "name": "Mediciones del UNS",
+    "topic": "+/+/+/+/+/+/medicion/+",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "b10",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 120,
+    "wires": [
+      [
+        "f10"
+      ]
+    ]
+  },
+  {
+    "id": "s10",
+    "type": "mqtt in",
+    "z": "t10",
+    "name": "Salidas del UNS",
+    "topic": "+/+/+/+/+/+/salida/+",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "b10",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 140,
+    "y": 180,
+    "wires": [
+      [
+        "f10"
+      ]
+    ]
+  },
+  {
+    "id": "f10",
+    "type": "function",
+    "z": "t10",
+    "name": "A protocolo de línea",
+    "func": "// ── CAMBIE SOLO ESTAS TRES LÍNEAS ─────────────────────────────\nconst HOST   = \"IP_PUBLICA\";     // IP o DNS público de su VM en AWS\nconst ORG    = \"unipamplona\";    // INFLUX_ORG del archivo .env\nconst BUCKET = \"uns\";            // INFLUX_BUCKET del archivo .env\n// El token NO va aquí: va en el nodo «Escribir en InfluxDB»,\n// campo Token (así no queda dentro del flujo exportado).\n// ──────────────────────────────────────────────────────────────\n\n// Tópico: empresa/sitio/area/linea/celda/dispositivo/clase/variable\nconst n = msg.topic.split(\"/\");\nif (n.length !== 8) {\n    node.warn(\"Tópico con \" + n.length + \" niveles, se esperaban 8: \" + msg.topic);\n    return null;\n}\nconst nombres = [\"empresa\", \"sitio\", \"area\", \"linea\", \"celda\", \"dispositivo\"];\n\n// Extraer el número: acepta {\"valor\":42.5,...} o un número suelto\nconst p = msg.payload;\nconst valor = Number((p !== null && typeof p === \"object\") ? p.valor : p);\nif (!Number.isFinite(valor)) {\n    node.warn(\"Mensaje sin valor numérico en \" + msg.topic);\n    return null;\n}\n\n// En el protocolo de línea, espacios, comas e iguales se escapan\nconst esc = (s) => String(s).replace(/([ ,=])/g, \"\\\\$1\");\n\nlet etiquetas = nombres.map((k, i) => k + \"=\" + esc(n[i]));\netiquetas.push(\"variable=\" + esc(n[7]));\nif (p && p.unidad)  etiquetas.push(\"unidad=\"  + esc(p.unidad));\nif (p && p.calidad) etiquetas.push(\"calidad=\" + esc(p.calidad));\n\n// medicion,empresa=...,variable=potenciometro valor=42.5 1730000000000\nmsg.payload = esc(n[6]) + \",\" + etiquetas.join(\",\") +\n              \" valor=\" + valor + \" \" + Date.now();\n\nmsg.url = \"http://\" + HOST + \":8086/api/v2/write\" +\n          \"?org=\" + encodeURIComponent(ORG) +\n          \"&bucket=\" + encodeURIComponent(BUCKET) +\n          \"&precision=ms\";\nmsg.headers = { \"Content-Type\": \"text/plain; charset=utf-8\" };\nnode.status({ fill: \"blue\", shape: \"dot\", text: n[5] + \"/\" + n[7] + \" = \" + valor });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 390,
+    "y": 150,
+    "wires": [
+      [
+        "h10"
+      ]
+    ]
+  },
+  {
+    "id": "h10",
+    "type": "http request",
+    "z": "t10",
+    "name": "Escribir en InfluxDB",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "bearer",
+    "senderr": false,
+    "headers": [],
+    "x": 620,
+    "y": 150,
+    "wires": [
+      [
+        "r10"
+      ]
+    ]
+  },
+  {
+    "id": "r10",
+    "type": "function",
+    "z": "t10",
+    "name": "¿204?",
+    "func": "// InfluxDB responde 204 cuando escribió el punto\nif (msg.statusCode === 204) {\n    node.status({ fill: \"green\", shape: \"dot\", text: \"204 · escrito\" });\n} else {\n    node.status({ fill: \"red\", shape: \"ring\", text: msg.statusCode + \" · ver depuración\" });\n    return msg;\n}\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 790,
+    "y": 150,
+    "wires": [
+      [
+        "d10"
+      ]
+    ]
+  },
+  {
+    "id": "d10",
+    "type": "debug",
+    "z": "t10",
+    "name": "Errores de escritura",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 970,
+    "y": 150,
+    "wires": []
+  }
+]

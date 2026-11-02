@@ -1,0 +1,17 @@
+# Grafana crea esta fuente de datos sola al arrancar.
+# Los valores salen de las variables de entorno definidas en .env.
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-UNS
+    uid: influxdb-uns
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086        # nombre del servicio, no localhost
+    isDefault: true
+    jsonData:
+      version: Flux
+      organization: ${INFLUX_ORG}
+      defaultBucket: ${INFLUX_BUCKET}
+    secureJsonData:
+      token: ${INFLUX_TOKEN}

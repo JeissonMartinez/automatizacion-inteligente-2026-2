@@ -1,0 +1,3 @@
+# Copie este archivo como .gitignore en ~/broker-uns
+.env
+mosquitto/config/passwd
