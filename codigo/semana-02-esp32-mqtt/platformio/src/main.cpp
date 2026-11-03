@@ -25,20 +25,22 @@
  */
 
 // --- Red -----------------------------------------------------------------
-const char* WIFI_SSID     = "CAMBIE_LA_RED";
-const char* WIFI_CLAVE    = "CAMBIE_LA_CLAVE";
+const char* WIFI_SSID     = "JM";
+const char* WIFI_CLAVE    = "****";
 
 // Dirección IP del computador donde corre Mosquitto.
 // NO es "localhost" ni "mosquitto". El ESP32 es otra máquina.
 // Averígüela con  ipconfig  (Windows)  o  ip a  (Linux/macOS).
-const char* BROKER_IP     = "192.168.0.000";
+const char* BROKER_IP     = "15.229.1.164";
 const uint16_t BROKER_PUERTO = 1883;
+const char* USER          = "profe";
+const char* PASS          = "****";
 
 // --- Su identidad en el espacio de nombres -------------------------------
 // Esta jerarquía es PROVISIONAL. Cada equipo usa la que propuso en su
 // bitácora. En la sesión 4A se comparan las tres y se rediseña.
 #define RAIZ         "lab"
-#define EQUIPO       "equipo-A"
+#define EQUIPO       "profe"
 #define DISPOSITIVO  "esp32-01"
 
 // --- Qué sensor está conectado -------------------------------------------
@@ -157,7 +159,7 @@ void conectarBroker() {
     // Si este dispositivo se cae sin despedirse, el broker publica
     // "offline" en TOPICO_ESTADO por su cuenta.
     bool ok = mqtt.connect(idCliente.c_str(),
-                           NULL, NULL,          // sin usuario ni contraseña
+                           USER, PASS,          // usuario y contraseña
                            TOPICO_ESTADO,       // tópico del testamento
                            1,                   // QoS 1
                            true,                // retenido
